@@ -76,13 +76,21 @@ export default async function PedidosPage() {
               items.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-sm">
-                    {p.numero ?? "—"}
+                    <Link
+                      href={`/admin/pedidos/${p.id}`}
+                      className="text-brand-600 hover:underline"
+                    >
+                      {p.numero ?? "—"}
+                    </Link>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-neutral-900">
+                    <Link
+                      href={`/admin/pedidos/${p.id}`}
+                      className="font-medium text-neutral-900 hover:underline"
+                    >
                       {p.cliente.nombres} {p.cliente.apellidos}
-                    </div>
-                    <div className="text-xs text-neutral-500">
+                    </Link>
+                    <div className="block text-xs text-neutral-500">
                       {p.cliente.celular ?? p.cliente.telefono ?? p.cliente.correo ?? "—"}
                     </div>
                   </TableCell>

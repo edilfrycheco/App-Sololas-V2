@@ -12,6 +12,7 @@ const ITEMS = [
   },
   { href: "/admin/configuracion/rellenos", label: "Rellenos" },
   { href: "/admin/configuracion/metodos-pago", label: "Métodos de pago" },
+  { href: "/admin/configuracion/ncf", label: "Comprobantes NCF" },
 ];
 
 export function ConfigSubnav() {
