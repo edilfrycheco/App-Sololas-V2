@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ImageIcon, Plus, Receipt, Truck } from "lucide-react";
+import { ArrowLeft, Download, ImageIcon, Plus, Receipt, Truck } from "lucide-react";
 
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -265,13 +265,21 @@ export default async function PedidoDetailPage({ params }: PageProps) {
                     <TableHead>NCF</TableHead>
                     <TableHead>Referencia</TableHead>
                     <TableHead className="text-right">Monto</TableHead>
+                    <TableHead className="text-right">PDF</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payments.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="font-mono text-sm">
-                        #{p.numeroRecibo}
+                        <Link
+                          href={`/api/recibos/${p.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-brand-600 hover:underline"
+                        >
+                          #{p.numeroRecibo}
+                        </Link>
                       </TableCell>
                       <TableCell className="text-xs text-neutral-600">
                         {formatDate(p.fecha)}
@@ -292,6 +300,36 @@ export default async function PedidoDetailPage({ params }: PageProps) {
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {formatDOP(p.monto)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Ver recibo PDF"
+                        >
+                          <Link
+                            href={`/api/recibos/${p.id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Receipt className="h-4 w-4 text-brand-600" />
+                          </Link>
+                        </Button>
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Descargar recibo"
+                        >
+                          <Link
+                            href={`/api/recibos/${p.id}?download=1`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <Download className="h-4 w-4 text-brand-600" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -342,18 +380,6 @@ export default async function PedidoDetailPage({ params }: PageProps) {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Recibo PDF + correo */}
-      <Card className="p-4 text-sm text-neutral-600">
-        <div className="flex items-center gap-2 font-medium text-neutral-900">
-          <Receipt className="h-4 w-4 text-brand-600" /> Recibo PDF y envío por
-          correo
-        </div>
-        <p className="mt-1 text-xs">
-          Próximo PR (PR6/PR7): generación de PDF con el logo y envío
-          automático al correo del cliente al registrar el pago.
-        </p>
-      </Card>
     </div>
   );
 }
