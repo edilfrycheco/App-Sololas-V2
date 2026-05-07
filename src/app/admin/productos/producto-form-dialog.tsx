@@ -34,6 +34,7 @@ import {
 } from "@/lib/productos/schema";
 import { createProducto, updateProducto } from "@/lib/productos/actions";
 import { uploadProductoImage } from "@/lib/productos/storage";
+import { compressImage } from "@/lib/image/compress";
 import {
   AREA_LABELS,
   type AreaCocinaValue,
@@ -97,15 +98,30 @@ export function ProductoFormDialog({ trigger, mode, categorias }: Props) {
   const handleUpload = async (file: File) => {
     setIsUploading(true);
     try {
+      // Comprime en el navegador: resize a 1200px + WebP q82.
+      // Una foto de 5 MB queda típicamente en ~150 KB sin pérdida visible.
+      let toUpload: File;
+      try {
+        toUpload = await compressImage(file);
+      } catch {
+        toUpload = file;
+      }
+
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", toUpload);
       const result = await uploadProductoImage(fd);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       form.setValue("imagenUrl", result.url, { shouldValidate: true });
-      toast.success("Imagen cargada");
+      const ratio = file.size > 0 ? toUpload.size / file.size : 1;
+      const savedPct = Math.max(0, Math.round((1 - ratio) * 100));
+      toast.success(
+        savedPct >= 10
+          ? `Imagen cargada (optimizada ${savedPct}%)`
+          : "Imagen cargada",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -324,7 +340,7 @@ export function ProductoFormDialog({ trigger, mode, categorias }: Props) {
                   }}
                 />
                 <p className="text-xs text-neutral-500">
-                  PNG/JPG/WebP. Máximo 5 MB.
+                  PNG/JPG/WebP. Se optimiza automáticamente al subirla.
                 </p>
               </div>
             </div>
