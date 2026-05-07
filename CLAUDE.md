@@ -109,5 +109,37 @@ Copiar `.env.example` a `.env.local`. Nunca commitear `.env.local`. Para `db:pus
 - **No mezclar fases** en un mismo PR.
 - Antes de tocar el schema, releer `PLAN-SOLOLAS.md` § 4.
 - Antes de un flujo nuevo, releer la subsección correspondiente de § 5.
+- Antes de tocar cualquier pantalla, releer la sección de `docs/AUDITORIA-APP-ACTUAL.md` que corresponde — es el contrato mínimo de funcionalidad que la app v3 debe cubrir.
 - Commits chicos y descriptivos. Diffs revisables.
 - Tests para lógica fiscal (ITBIS, NCF, validación de cédula/RNC) son obligatorios cuando se implemente esa parte.
+
+## Principios de producto (no negociables)
+
+### Todo funcional desde el primer commit
+
+Cada pantalla arranca con **datos reales de la base**. Cero placeholders, cero mockups. Si una métrica del dashboard está en 0 es porque la consulta SQL devolvió 0, no porque sea decorativa. Esto aplica a:
+
+- Dashboard de admin (4 cards de métricas + las nuevas)
+- Pizarras (eventos cargados de `orders`)
+- Historial de pagos / pedidos (paginación + filtros funcionales contra DB)
+- Resumen de producción (calculado de `order_items` filtrados por rango)
+- Reportes (consultas reales con totales, no datos hardcoded)
+- Listas (Personas, Productos, Cursos, etc.)
+
+Si una sección no se puede llenar con consultas reales todavía (porque depende de otra fase), no se construye su UI hasta que esté la data.
+
+### Separación operativo vs configuración
+
+**Sidebar principal** (lo del día a día — lo que el usuario abre todos los días):
+- Inicio · Personas · Productos · Pedidos (Tomar / Pizarras) · Cursos · Reportes
+
+**`/admin/configuracion`** (oculto, solo para ajustes — el usuario entra raramente):
+- Mi Negocio (datos del recibo)
+- Usuarios del sistema y roles
+- Métodos / Formas de pago
+- Tipos de comprobante (NCF)
+- Secuencias NCF (vista por tipo con progreso, NUNCA la lista cruda de miles de NCF)
+- Categorías de producto, subcategorías, rellenos, unidades de medida
+- Suplidores (si se mantiene)
+
+Regla de decisión: si Raizel lo necesita una vez por mes o menos, va en Configuración. Si lo abre todos los días, va en el sidebar principal.
