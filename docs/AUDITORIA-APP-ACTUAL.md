@@ -400,7 +400,7 @@ Las pizarras tienen 3 tabs: `Bizcocho | Postres | Salados`.
 
 📌 **3 pestañas**: `Información General` | `Información del Pedido` | `Referencias`.
 
-⚠️ Aclaración del usuario: "Se toman los pedidos en 2 tabs, no 3" — pero la captura claramente muestra 3 pestañas. Asumimos que `Referencias` está integrada visualmente con `Información del Pedido` o que se considera complementaria y no un paso separado. **Confirmar**: ¿unificamos Referencias dentro de "Información del Pedido" en la nueva UI?
+✅ Confirmado con Raizel: se mantienen las 3 pestañas en la nueva app v3 (igual que la app actual y el plan § 5.6).
 
 #### 3.11.1 Tab "Información General"
 
@@ -632,8 +632,9 @@ Botones: **Buscar** (cyan) | **Limpiar** (orange).
 4. ❓ **Rellenos**: ¿entidad CRUD o texto libre por item?
 5. ❓ **Numeración**: confirmar que `No. Pedido` y `# Recibo` son secuencias separadas.
 6. ❓ **Cédula en `system_users`**: ¿se agrega al schema?
-7. ❓ **Tabs en Tomar Pedido**: ¿2 o 3? (la captura muestra 3, el usuario dice 2).
-8. ❓ **Pizarras de área**: ¿muestran los pedidos de la otra área en read-only o solo los propios?
+7. ❓ **Pizarras de área**: ¿muestran los pedidos de la otra área en read-only o solo los propios?
+
+✅ Resuelto: Tomar Pedido mantiene **3 tabs** (Información General | Información del Pedido | Referencias).
 
 Una vez resueltos, se actualiza `PLAN-SOLOLAS.md` § 4 y § 5 con la decisión final.
 
