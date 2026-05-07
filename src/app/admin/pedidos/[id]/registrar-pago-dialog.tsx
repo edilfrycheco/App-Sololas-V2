@@ -99,10 +99,26 @@ export function RegistrarPagoDialog({
         return;
       }
 
-      const { ncf, numeroRecibo, estatusPago, alertaNcfReorden } = result.data;
+      const { ncf, numeroRecibo, estatusPago, alertaNcfReorden, emailEnviado } =
+        result.data;
       toast.success(
         `Pago registrado · Recibo #${numeroRecibo}${ncf ? ` · NCF ${ncf}` : ""} · Estado: ${estatusPago}`,
       );
+      if (emailEnviado.sent) {
+        toast.success("Recibo enviado al correo del cliente");
+      } else if (emailEnviado.reason === "no_email") {
+        toast.message("El cliente no tiene correo registrado", {
+          description:
+            "El recibo se generó pero no se envió por correo. Edítalo si quieres enviarlo.",
+        });
+      } else if (emailEnviado.reason === "not_configured") {
+        toast.message("Correo no configurado", {
+          description:
+            "Falta configurar RESEND_API_KEY en Vercel para enviar recibos automáticamente.",
+        });
+      } else if (emailEnviado.reason) {
+        toast.warning("No se pudo enviar el recibo por correo");
+      }
       if (alertaNcfReorden) {
         toast.warning(
           "Quedan pocos NCFs disponibles. Solicita una nueva secuencia a DGII pronto.",

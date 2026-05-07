@@ -27,6 +27,7 @@ import {
 import { formatDOP, formatDate } from "@/lib/utils";
 import { AREA_LABELS, type AreaCocinaValue } from "@/lib/categorias/schema";
 import { RegistrarPagoDialog } from "./registrar-pago-dialog";
+import { ReenviarReciboButton } from "./reenviar-recibo-button";
 
 export const dynamic = "force-dynamic";
 
@@ -330,6 +331,7 @@ export default async function PedidoDetailPage({ params }: PageProps) {
                             <Download className="h-4 w-4 text-brand-600" />
                           </Link>
                         </Button>
+                        <ReenviarReciboButton paymentId={p.id} />
                       </TableCell>
                     </TableRow>
                   ))}

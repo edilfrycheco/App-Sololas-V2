@@ -34,6 +34,7 @@ export interface RegistrarPagoOk {
   ncf: string | null;
   estatusPago: "pendiente" | "parcial" | "pagado";
   alertaNcfReorden: boolean;
+  emailEnviado: { sent: boolean; reason?: string };
 }
 
 export async function registrarPago(
@@ -133,7 +134,23 @@ export async function registrarPago(
 
     revalidatePath(`/admin/pedidos/${parsed.data.orderId}`);
     revalidatePath("/admin/pedidos");
-    return { ok: true, data: result };
+
+    // Best-effort: enviar el recibo por correo si está configurado y el
+    // cliente tiene email. No bloquea ni falla el pago si no se puede.
+    let emailEnviado: { sent: boolean; reason?: string } = { sent: false };
+    try {
+      const { sendReciboToCliente } = await import(
+        "@/lib/email/send-recibo"
+      );
+      const sent = await sendReciboToCliente(result.paymentId);
+      emailEnviado = sent.ok
+        ? { sent: true }
+        : { sent: false, reason: sent.reason };
+    } catch {
+      emailEnviado = { sent: false, reason: "send_failed" };
+    }
+
+    return { ok: true, data: { ...result, emailEnviado } };
   } catch (error) {
     const fieldKey =
       error && typeof error === "object" && "fieldKey" in error
