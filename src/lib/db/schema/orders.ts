@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -7,26 +8,41 @@ import {
   text,
   time,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { areaCocinaEnum, estatusPagoEnum, estatusProduccionEnum } from "./enums";
 import { ncfTypes, paymentMethods } from "./fiscal";
 import { people } from "./people";
+import { rellenos } from "./rellenos";
 import { systemUsers } from "./system-users";
 
 /**
  * Section 4.4 — Módulo Pedidos.
  *
- * Improvement over v2: only two base categories (Dulces / Salados) and each
- * one is bound to a `area_cocina`, which the kitchen tablet uses to filter.
+ * Decisión #1 con Raizel: las áreas (postres / salados) son fijas (las 2
+ * tablets físicas) y dentro de cada una se crean N categorías. La constraint
+ * UNIQUE(area_cocina, nombre) impide duplicar nombre dentro del área.
+ *
+ * Bizcocho queda como categoría dentro de `postres`, no como tercera área.
  */
 
-export const productCategories = pgTable("product_categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  nombre: text("nombre").notNull(), // 'Dulces' | 'Salados'
-  areaCocina: areaCocinaEnum("area_cocina").notNull(),
-  colorHex: text("color_hex").notNull(),
-});
+export const productCategories = pgTable(
+  "product_categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(), // 'Bizcocho', 'Cupcakes', 'Empanadas', ...
+    areaCocina: areaCocinaEnum("area_cocina").notNull(),
+    colorHex: text("color_hex").notNull(),
+    activo: boolean("activo").notNull().default(true),
+  },
+  (t) => [
+    uniqueIndex("product_categories_area_nombre_unique").on(
+      t.areaCocina,
+      t.nombre,
+    ),
+  ],
+);
 
 export const products = pgTable("products", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -96,7 +112,9 @@ export const orderItems = pgTable("order_items", {
     .notNull()
     .default("0"),
   neto: numeric("neto", { precision: 12, scale: 2 }).notNull(),
-  relleno: text("relleno"),
+  rellenoId: uuid("relleno_id").references(() => rellenos.id, {
+    onDelete: "set null",
+  }),
   topping: text("topping"),
   decoracion: text("decoracion"),
   notas: text("notas"),
@@ -122,6 +140,9 @@ export const orderReferences = pgTable("order_references", {
 
 export const orderPayments = pgTable("order_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  numeroRecibo: integer("numero_recibo")
+    .notNull()
+    .default(sql`nextval('recibo_seq')`),
   orderId: uuid("order_id")
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),

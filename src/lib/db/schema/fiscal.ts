@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   integer,
+  pgSequence,
   pgTable,
   text,
   uniqueIndex,
@@ -10,7 +11,20 @@ import {
 
 /**
  * Section 4.5 — Configuración fiscal (DGII RD).
+ *
+ * Decisión #5 con Raizel: 4 contadores separados.
+ *  - `orders.numero` (interno del pedido, ya en orders.ts)
+ *  - `recibo_seq` (compartido entre course_payments y order_payments)
+ *  - `numero_comprobante` (e-NCF fiscal, controlado por tipo y secuencia)
+ *  - `numero_referencia` (texto libre, lo digita el cajero)
  */
+
+/**
+ * Secuencia global de recibos. Compartida entre course_payments.numero_recibo
+ * y order_payments.numero_recibo. Cada PAGO genera un recibo (un pedido con
+ * 3 abonos = 3 recibos consecutivos en esta secuencia).
+ */
+export const reciboSeq = pgSequence("recibo_seq", { startWith: 1500 });
 
 export const ncfTypes = pgTable(
   "ncf_types",

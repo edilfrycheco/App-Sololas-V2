@@ -1,12 +1,9 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const rolEnum = pgEnum("rol", [
-  "admin",
-  "cajero",
-  "cocina_postres",
-  "cocina_salados",
-  "contable",
-]);
+/**
+ * `rolEnum` se eliminó en favor de la tabla `roles` configurable
+ * (Decisión #3 con Raizel — ver `docs/AUDITORIA-APP-ACTUAL.md` § 6).
+ */
 
 export const areaCocinaEnum = pgEnum("area_cocina", ["postres", "salados"]);
 
