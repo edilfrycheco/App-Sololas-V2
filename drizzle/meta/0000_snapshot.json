@@ -1,9 +1,83 @@
 {
-  "id": "1d3f60aa-0ac7-4fd2-928c-01e24ff468c8",
+  "id": "2d1e5321-43be-426c-9eed-cdf2f9b1d13b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.roles": {
+      "name": "roles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "area_cocina": {
+          "name": "area_cocina",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "permisos": {
+          "name": "permisos",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "roles_nombre_unique": {
+          "name": "roles_nombre_unique",
+          "columns": [
+            {
+              "expression": "nombre",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.people": {
       "name": "people",
       "schema": "",
@@ -184,10 +258,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "rol": {
-          "name": "rol",
-          "type": "rol",
-          "typeSchema": "public",
+        "rol_id": {
+          "name": "rol_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -220,7 +293,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "system_users_rol_id_roles_id_fk": {
+          "name": "system_users_rol_id_roles_id_fk",
+          "tableFrom": "system_users",
+          "tableTo": "roles",
+          "columnsFrom": [
+            "rol_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -406,6 +493,68 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.rellenos": {
+      "name": "rellenos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descripcion": {
+          "name": "descripcion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "rellenos_nombre_unique": {
+          "name": "rellenos_nombre_unique",
+          "columns": [
+            {
+              "expression": "nombre",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.course_payments": {
       "name": "course_payments",
       "schema": "",
@@ -416,6 +565,13 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
+        },
+        "numero_recibo": {
+          "name": "numero_recibo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('recibo_seq')"
         },
         "enrollment_id": {
           "name": "enrollment_id",
@@ -856,9 +1012,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "relleno": {
-          "name": "relleno",
-          "type": "text",
+        "relleno_id": {
+          "name": "relleno_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -928,6 +1084,19 @@
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
+        "order_items_relleno_id_rellenos_id_fk": {
+          "name": "order_items_relleno_id_rellenos_id_fk",
+          "tableFrom": "order_items",
+          "tableTo": "rellenos",
+          "columnsFrom": [
+            "relleno_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "order_items_marcado_listo_por_system_users_id_fk": {
           "name": "order_items_marcado_listo_por_system_users_id_fk",
           "tableFrom": "order_items",
@@ -958,6 +1127,13 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
+        },
+        "numero_recibo": {
+          "name": "numero_recibo",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "nextval('recibo_seq')"
         },
         "order_id": {
           "name": "order_id",
@@ -1340,9 +1516,38 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "activo": {
+          "name": "activo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "product_categories_area_nombre_unique": {
+          "name": "product_categories_area_nombre_unique",
+          "columns": [
+            {
+              "expression": "area_cocina",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "nombre",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
@@ -1664,21 +1869,21 @@
         "entregado",
         "cancelado"
       ]
-    },
-    "public.rol": {
-      "name": "rol",
-      "schema": "public",
-      "values": [
-        "admin",
-        "cajero",
-        "cocina_postres",
-        "cocina_salados",
-        "contable"
-      ]
     }
   },
   "schemas": {},
-  "sequences": {},
+  "sequences": {
+    "public.recibo_seq": {
+      "name": "recibo_seq",
+      "schema": "public",
+      "increment": "1",
+      "startWith": "1500",
+      "minValue": "1",
+      "maxValue": "9223372036854775807",
+      "cache": "1",
+      "cycle": false
+    }
+  },
   "roles": {},
   "policies": {},
   "views": {},

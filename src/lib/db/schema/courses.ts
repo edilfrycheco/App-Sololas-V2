@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -72,6 +73,9 @@ export const enrollments = pgTable("enrollments", {
 
 export const coursePayments = pgTable("course_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
+  numeroRecibo: integer("numero_recibo")
+    .notNull()
+    .default(sql`nextval('recibo_seq')`),
   enrollmentId: uuid("enrollment_id")
     .notNull()
     .references(() => enrollments.id, { onDelete: "cascade" }),

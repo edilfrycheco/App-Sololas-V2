@@ -100,19 +100,32 @@ people {
 
 En el formulario de creación habrá dos checkboxes: "Es cliente de pedidos" / "Es estudiante de cursos". Los listados pueden filtrar por uno, otro o ambos.
 
-### 4.2 Usuarios del sistema (operadores)
+### 4.2 Usuarios del sistema (operadores) y roles
+
+> **Decisión final con Raizel**: roles configurables (CRUD), no enum hardcoded.
 
 ```ts
+roles {
+  id: uuid (PK)
+  nombre: text (unique)
+  descripcion: text (nullable)
+  area_cocina: text (nullable, 'postres' | 'salados')
+  permisos: jsonb  -- { pedidos: { ver: true, crear: true, ... }, ... }
+  activo: boolean
+}
+
 system_users {
   id: uuid (PK, ref auth.users)
   nombres: text
   apellidos: text
-  rol: enum('admin', 'cajero', 'cocina_postres', 'cocina_salados', 'contable')
-  area_cocina: enum('postres', 'salados', null)  -- solo para roles cocina_*
-  tablet_id: text (nullable)  -- identificador físico de la tablet
+  rol_id: uuid (FK roles)
+  area_cocina: enum('postres', 'salados', null)  -- para asignar tablet física
+  tablet_id: text (nullable)
   activo: boolean
 }
 ```
+
+Los 5 roles base (admin, cajero, cocina_postres, cocina_salados, contable) se siembran como datos iniciales y Raizel puede añadir más.
 
 ### 4.3 Módulo Clases
 
@@ -150,11 +163,19 @@ course_payments {
 
 ### 4.4 Módulo Pedidos
 
+> **Decisión final con Raizel**: las 2 áreas (postres / salados) son fijas (las 2 tablets físicas), pero dentro de cada área se pueden crear N categorías a demanda. UNIQUE(area_cocina, nombre) impide duplicar dentro del área. Bizcocho queda como categoría dentro de postres, no como tercera área.
+
 ```ts
 product_categories {
-  id, nombre,  -- solo 'Dulces' y 'Salados' (mejora del actual)
+  id, nombre,  -- ej: 'Bizcocho', 'Cupcakes', 'Empanadas'
   area_cocina: enum('postres', 'salados'),
-  color_hex: text  -- para diferenciación visual en pizarras
+  color_hex: text,  -- para diferenciación visual en pizarras
+  activo: boolean,
+  UNIQUE(area_cocina, nombre)
+}
+
+rellenos {  -- Decisión #4: lista predefinida CRUD
+  id, nombre (unique), descripcion, activo
 }
 
 products {
@@ -178,7 +199,8 @@ orders {
 order_items {
   id, order_id (FK), product_id (FK),
   cantidad, precio_unitario, itbis_unitario, neto,
-  relleno: text (nullable), topping: text (nullable),
+  relleno_id: uuid (FK rellenos, nullable),
+  topping: text (nullable),
   decoracion: text (nullable),
   notas: text,
   listo: boolean (default false),  -- marcado por cocina
@@ -202,7 +224,16 @@ order_payments {
 
 ### 4.5 Configuración fiscal (DGII RD)
 
+> **Decisión #5 con Raizel**: 4 contadores separados.
+> - `orders.numero`: contador interno del pedido (auto-incremental, arranca en 1500).
+> - `recibo_seq`: secuencia compartida entre `course_payments.numero_recibo` y `order_payments.numero_recibo`. Cada PAGO genera UN recibo (un pedido con 3 abonos = 3 recibos consecutivos).
+> - `numero_comprobante`: e-NCF fiscal controlado por la secuencia del tipo de comprobante (DGII).
+> - `numero_referencia`: texto libre que digita el cajero (ref. bancaria, # cheque, etc.).
+
 ```ts
+-- Sequence compartida para recibos (course_payments + order_payments)
+CREATE SEQUENCE recibo_seq START WITH 1500;
+
 ncf_types {
   id, codigo: text,  -- 'B01', 'B02', 'B14', 'B15', 'B04', 'B03'
   nombre: text,  -- 'Crédito Fiscal', 'Factura de Consumo', 'Gubernamental', etc.
@@ -332,7 +363,8 @@ Una persona puede tener ambos checks. En las listas y selects de pedidos solo ap
 │                                                    │
 │  Av. República de Argentina #54, Rincón Largo,    │
 │  Santiago, República Dominicana                    │
-│  info@sololasrd.com  ·  (809) 879-2450            │
+│  info@sololasrd.com                                │
+│  Cel: (809) 879-2450 · Tel: (809) 241-1575        │
 │  RNC: XXX-XXXXX-X                                  │
 ├────────────────────────────────────────────────────┤
 │  Recibo de Pago                       No. 1488     │
@@ -829,6 +861,35 @@ Pasos sugeridos para Eddy:
 **Prompt sugerido para arrancar con Claude Code:**
 
 > Estoy construyendo Solola's v3, un sistema de gestión para repostería + taller culinario en RD. Lee el archivo `PLAN-SOLOLAS.md` completo. Vamos a ejecutar la Fase 0 (Setup). Configura el proyecto con el stack de la sección 2, monta el schema de la sección 4 con Drizzle, y crea las migraciones iniciales. No avances a otras fases hasta que confirme.
+
+---
+
+## 16. Decisiones cerradas con Raizel (post-auditoría)
+
+Las siguientes decisiones se tomaron tras leer el PDF `NOTAS SOLOLAS APP.pdf` y son las que rigen la implementación de Fase 1+:
+
+1. **Categorías por área**: 2 áreas fijas (`postres`, `salados`) × N categorías por área (CRUD desde Configuración o desde el form de producto). UNIQUE(area_cocina, nombre). Bizcocho queda como categoría dentro de postres.
+2. **Suplidores**: ELIMINADO (no se usa en la app actual según verificación del PDF).
+3. **Roles**: tabla `roles` configurable (CRUD), no enum hardcoded.
+4. **Rellenos**: lista predefinida (entidad CRUD propia, FK desde `order_items.relleno_id`).
+5. **Numeración**: 4 contadores separados (pedido, recibo compartido, e-NCF, referencia libre).
+6. **Cédula en `system_users`**: NO (la app actual no la pide; las cédulas viven en `people`).
+7. **Pizarras cross-area**: cada área ve solo sus pedidos, EXCEPTO cuando el pedido es mixto — entonces ambas áreas lo ven con nota de aviso "no se puede despachar hasta que ambas áreas marquen sus items como listos".
+
+**Datos de contacto reales** (extraídos del recibo PDF):
+
+- Nombre comercial: **Solola's**
+- Tagline: TALLER CULINARIO & CATERING
+- Dirección: Av. República de Argentina #54, Rincón Largo, Santiago, República Dominicana
+- Email: info@sololasrd.com
+- Celular: (809) 879-2450
+- Teléfono: (809) 241-1575
+
+**Principios de producto no negociables** (también en `CLAUDE.md`):
+
+- **Todo funcional desde el primer commit**: cero placeholders, las pantallas usan consultas reales contra la DB.
+- **Sidebar limpio**: solo lo del día a día. Configuración (NCF, métodos de pago, categorías, rellenos, unidades, roles, usuarios del sistema, mi negocio) vive bajo `/admin/configuracion`.
+- **Re-leer `docs/AUDITORIA-APP-ACTUAL.md`** antes de tocar cualquier pantalla.
 
 ---
 

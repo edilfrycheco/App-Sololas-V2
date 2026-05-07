@@ -624,17 +624,33 @@ Botones: **Buscar** (cyan) | **Limpiar** (orange).
 
 ---
 
-## 6. Pendientes de aclarar antes de Fase 1
+## 6. Decisiones cerradas con Raizel
 
-1. ❓ **Bizcocho** como categoría: ¿hermana de Postres y Salados, o subcategoría de Postres? (Afecta el modelo `product_categories`).
-2. ❓ **Suplidores**: ¿se mantiene el módulo o se pospone para v4?
-3. ❓ **Roles configurables vs enum hardcoded**: ¿CRUD o se quedan los 5 fijos del plan?
-4. ❓ **Rellenos**: ¿entidad CRUD o texto libre por item?
-5. ❓ **Numeración**: confirmar que `No. Pedido` y `# Recibo` son secuencias separadas.
-6. ❓ **Cédula en `system_users`**: ¿se agrega al schema?
-7. ❓ **Pizarras de área**: ¿muestran los pedidos de la otra área en read-only o solo los propios?
+Las 8 decisiones que estaban abiertas quedaron resueltas. Detalle:
 
-✅ Resuelto: Tomar Pedido mantiene **3 tabs** (Información General | Información del Pedido | Referencias).
+1. ✅ **Categorías por área**: las 2 áreas (postres, salados) son fijas (las 2 tablets físicas). Dentro de cada área se crean N categorías a demanda con UNIQUE(area_cocina, nombre). **Bizcocho queda como categoría dentro de postres**, no como tercera área.
+
+2. ✅ **Suplidores**: ELIMINADO. Verificación del PDF confirma que el módulo solo aparece en el sidebar pero nunca se ve poblado ni referenciado por ningún producto. No se incluye en v3.
+
+3. ✅ **Roles configurables**: tabla `roles` con CRUD. Reemplaza el enum hardcoded del plan v3 inicial. Los 5 roles base (admin, cajero, cocina_postres, cocina_salados, contable) se siembran como datos iniciales.
+
+4. ✅ **Rellenos = lista predefinida**: entidad `rellenos` propia con CRUD desde Configuración. `order_items.relleno_id` apunta a la tabla por FK (nullable porque no todos los productos llevan relleno). Permite reportes de "rellenos más pedidos".
+
+5. ✅ **Numeración separada (4 contadores)**:
+   - `orders.numero` — interno del pedido (autoincrement, arranca en 1500).
+   - `recibo_seq` — secuencia compartida entre `course_payments.numero_recibo` y `order_payments.numero_recibo`. Cada pago genera UN recibo.
+   - `numero_comprobante` — e-NCF fiscal (DGII), controlado por la secuencia del tipo de comprobante.
+   - `numero_referencia` — texto libre que digita el cajero (ref. bancaria, # cheque, etc.).
+
+6. ✅ **Cédula en `system_users`**: NO. La app actual no la pide para empleados; las cédulas viven en `people` (clientes/estudiantes) que ya tiene `cedula_rnc`.
+
+7. ✅ **Pizarras cross-area**: cada área ve **solo los pedidos donde tiene items propios**. Si el pedido es mixto (items de ambas áreas), aparece en ambas pizarras pero:
+   - Cada área solo puede marcar sus propios items.
+   - Se muestra una nota: "Este pedido tiene items en {otra área}. No se puede despachar hasta que ambas áreas marquen sus items como listos."
+   - El botón "Listo para Entrega" solo se activa cuando AMBAS áreas marcaron todo.
+   - La pizarra General (admin) siempre muestra todo.
+
+8. ✅ **Tabs en Tomar Pedido**: se mantienen los **3 tabs** (Información General | Información del Pedido | Referencias).
 
 Una vez resueltos, se actualiza `PLAN-SOLOLAS.md` § 4 y § 5 con la decisión final.
 

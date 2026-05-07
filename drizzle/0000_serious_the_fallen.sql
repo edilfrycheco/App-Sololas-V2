@@ -2,7 +2,17 @@ CREATE TYPE "public"."area_cocina" AS ENUM('postres', 'salados');--> statement-b
 CREATE TYPE "public"."curso_estatus" AS ENUM('programado', 'en_curso', 'finalizado', 'cancelado');--> statement-breakpoint
 CREATE TYPE "public"."estatus_pago" AS ENUM('pendiente', 'parcial', 'pagado');--> statement-breakpoint
 CREATE TYPE "public"."estatus_produccion" AS ENUM('pendiente', 'en_proceso', 'listo', 'entregado', 'cancelado');--> statement-breakpoint
-CREATE TYPE "public"."rol" AS ENUM('admin', 'cajero', 'cocina_postres', 'cocina_salados', 'contable');--> statement-breakpoint
+CREATE SEQUENCE "public"."recibo_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1500 CACHE 1;--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "roles" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"nombre" text NOT NULL,
+	"descripcion" text,
+	"area_cocina" text,
+	"permisos" jsonb,
+	"activo" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "people" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"nombres" text NOT NULL,
@@ -23,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "system_users" (
 	"id" uuid PRIMARY KEY NOT NULL,
 	"nombres" text NOT NULL,
 	"apellidos" text NOT NULL,
-	"rol" "rol" NOT NULL,
+	"rol_id" uuid NOT NULL,
 	"area_cocina" "area_cocina",
 	"tablet_id" text,
 	"activo" boolean DEFAULT true NOT NULL,
@@ -56,8 +66,17 @@ CREATE TABLE IF NOT EXISTS "payment_methods" (
 	"requiere_referencia" boolean DEFAULT false NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "rellenos" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"nombre" text NOT NULL,
+	"descripcion" text,
+	"activo" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "course_payments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"numero_recibo" integer DEFAULT nextval('recibo_seq') NOT NULL,
 	"enrollment_id" uuid NOT NULL,
 	"monto" numeric(12, 2) NOT NULL,
 	"fecha" timestamp with time zone DEFAULT now() NOT NULL,
@@ -114,7 +133,7 @@ CREATE TABLE IF NOT EXISTS "order_items" (
 	"precio_unitario" numeric(12, 2) NOT NULL,
 	"itbis_unitario" numeric(12, 2) DEFAULT '0' NOT NULL,
 	"neto" numeric(12, 2) NOT NULL,
-	"relleno" text,
+	"relleno_id" uuid,
 	"topping" text,
 	"decoracion" text,
 	"notas" text,
@@ -125,6 +144,7 @@ CREATE TABLE IF NOT EXISTS "order_items" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "order_payments" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"numero_recibo" integer DEFAULT nextval('recibo_seq') NOT NULL,
 	"order_id" uuid NOT NULL,
 	"monto" numeric(12, 2) NOT NULL,
 	"fecha" timestamp with time zone DEFAULT now() NOT NULL,
@@ -168,7 +188,8 @@ CREATE TABLE IF NOT EXISTS "product_categories" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"nombre" text NOT NULL,
 	"area_cocina" "area_cocina" NOT NULL,
-	"color_hex" text NOT NULL
+	"color_hex" text NOT NULL,
+	"activo" boolean DEFAULT true NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "products" (
@@ -212,6 +233,12 @@ CREATE TABLE IF NOT EXISTS "audit_log" (
 	"metadata" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "system_users" ADD CONSTRAINT "system_users_rol_id_roles_id_fk" FOREIGN KEY ("rol_id") REFERENCES "public"."roles"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "ncf_sequences" ADD CONSTRAINT "ncf_sequences_ncf_type_id_ncf_types_id_fk" FOREIGN KEY ("ncf_type_id") REFERENCES "public"."ncf_types"("id") ON DELETE restrict ON UPDATE no action;
@@ -275,6 +302,12 @@ END $$;
 --> statement-breakpoint
 DO $$ BEGIN
  ALTER TABLE "order_items" ADD CONSTRAINT "order_items_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "order_items" ADD CONSTRAINT "order_items_relleno_id_rellenos_id_fk" FOREIGN KEY ("relleno_id") REFERENCES "public"."rellenos"("id") ON DELETE set null ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -345,8 +378,11 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "roles_nombre_unique" ON "roles" USING btree ("nombre");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "people_cedula_rnc_unique" ON "people" USING btree ("cedula_rnc") WHERE "people"."cedula_rnc" is not null;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "people_correo_idx" ON "people" USING btree ("correo");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "people_is_cliente_idx" ON "people" USING btree ("is_cliente");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "people_is_estudiante_idx" ON "people" USING btree ("is_estudiante");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "ncf_types_codigo_unique" ON "ncf_types" USING btree ("codigo");
+CREATE UNIQUE INDEX IF NOT EXISTS "ncf_types_codigo_unique" ON "ncf_types" USING btree ("codigo");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "rellenos_nombre_unique" ON "rellenos" USING btree ("nombre");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "product_categories_area_nombre_unique" ON "product_categories" USING btree ("area_cocina","nombre");
